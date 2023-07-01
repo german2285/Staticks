@@ -37,8 +37,10 @@ def update_csv(rows, temp_file_path):
         writer = csv.writer(temp_file)
         for row in rows:
             writer.writerow(row)
-    os.remove('output.csv')
+    if os.path.exists('output.csv'):  # добавить эту строку
+        os.remove('output.csv')
     os.rename(temp_file_path, 'output.csv')
+
 
 def main():
     last_exception = None  # добавить эту строку

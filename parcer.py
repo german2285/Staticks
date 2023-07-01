@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import time
 import csv
 from bs4 import BeautifulSoup

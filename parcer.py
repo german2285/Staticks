@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
-import time
+import os
 import csv
+import time
 from bs4 import BeautifulSoup
 import requests
 
@@ -27,31 +27,46 @@ def get_region_number(soup):
     div = soup.find('div', {'class': 'number'})
     if div:
         number = div.text
-        region = ''.join(filter(str.isdigit, number[-3:]))  # оставляем только цифры
-        return number[0], region
+        exception = number[4:6]  # берем 5-й и 6-й символы как исключение
+        region = ''.join(filter(str.isdigit, number[-3:]))
+        return exception, region
     return None, None
 
+def update_csv(rows, temp_file_path):
+    with open(temp_file_path, 'w', newline='') as temp_file:
+        writer = csv.writer(temp_file)
+        for row in rows:
+            writer.writerow(row)
+    os.remove('output.csv')
+    os.rename(temp_file_path, 'output.csv')
 
 def main():
-    last_letter = None
+    last_exception = None  # добавить эту строку
     regions_count = {}
+    temp_file_path = 'temp.csv'
+    rows = []
 
-    with open('output.csv', 'w', newline='') as file:
-        writer = csv.writer(file)
-        while True:
-            response = requests.get(url, headers=headers)
-            soup = BeautifulSoup(response.text, 'html.parser')
-            letter, region = get_region_number(soup)
+    while True:
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        exception, region = get_region_number(soup)
 
-            if letter is not None and region is not None:
-                if last_letter is not None and letter != last_letter:
-                    regions_count[region] = regions_count.get(region, 0) + 1
-                    writer.writerow([regions_count[region], region])
-                    file.flush()
+        if exception is not None and region is not None:
+            if last_exception is not None and exception != last_exception:
+                regions_count[region] = regions_count.get(region, 0) + 1
 
-                last_letter = letter
+                for i, row in enumerate(rows):
+                    if row[1] == region:
+                        rows[i][0] = str(regions_count[region])
+                        break
+                else:  # if the region is not in the list, add a new row
+                    rows.append([str(regions_count[region]), region])
 
-            time.sleep(0.2)
+                update_csv(rows, temp_file_path)
+
+            last_exception = exception
+
+        time.sleep(0.2)
 
 if __name__ == "__main__":
     main()
